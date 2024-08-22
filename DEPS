@@ -1313,8 +1313,9 @@ deps = {
       'dep_type': 'cipd',
   },
 
-  'src/third_party/googletest/src':
-    Var('chromium_git') + '/external/github.com/google/googletest.git' + '@' + Var('googletest_revision'),
+# imported
+# 'src/third_party/googletest/src':
+#   Var('chromium_git') + '/external/github.com/google/googletest.git' + '@' + Var('googletest_revision'),
 
   # GNU binutils assembler for x86-32.
   'src/third_party/gnu_binutils': {
