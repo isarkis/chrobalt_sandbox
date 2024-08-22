@@ -101,6 +101,7 @@ static void __asan_unpoison_memory_region(const void *addr, size_t size) {}
 #define WEAK_SYMBOL_FUNC(rettype, name, args) static rettype(*name) args = NULL;
 #endif
 
+#if !defined(OPENSSL_SYS_STARBOARD)
 // sdallocx is a sized |free| function. By passing the size (which we happen to
 // always know in BoringSSL), the malloc implementation can save work. We cannot
 // depend on |sdallocx| being available, however, so it's a weak symbol.
@@ -132,6 +133,7 @@ WEAK_SYMBOL_FUNC(void, sdallocx, (void *ptr, size_t size, int flags));
 WEAK_SYMBOL_FUNC(void *, OPENSSL_memory_alloc, (size_t size));
 WEAK_SYMBOL_FUNC(void, OPENSSL_memory_free, (void *ptr));
 WEAK_SYMBOL_FUNC(size_t, OPENSSL_memory_get_size, (void *ptr));
+#endif  // !defined(OPENSSL_SYS_STARBOARD)
 
 // kBoringSSLBinaryTag is a distinctive byte sequence to identify binaries that
 // are linking in BoringSSL and, roughly, what version they are using.
@@ -230,6 +232,7 @@ void *OPENSSL_malloc(size_t size) {
     goto err;
   }
 
+#if !defined(OPENSSL_SYS_STARBOARD)
   if (OPENSSL_memory_alloc != NULL) {
     assert(OPENSSL_memory_free != NULL);
     assert(OPENSSL_memory_get_size != NULL);
@@ -239,6 +242,7 @@ void *OPENSSL_malloc(size_t size) {
     }
     return ptr;
   }
+#endif  // !defined(OPENSSL_SYS_STARBOARD)
 
   if (size + OPENSSL_MALLOC_PREFIX < size) {
     // |OPENSSL_malloc| is a central function in BoringSSL thus a reference to
@@ -273,10 +277,12 @@ void OPENSSL_free(void *orig_ptr) {
     return;
   }
 
+#if !defined(OPENSSL_SYS_STARBOARD)
   if (OPENSSL_memory_free != NULL) {
     OPENSSL_memory_free(orig_ptr);
     return;
   }
+#endif  // !defined(OPENSSL_SYS_STARBOARD)
 
   void *ptr = ((uint8_t *)orig_ptr) - OPENSSL_MALLOC_PREFIX;
   __asan_unpoison_memory_region(ptr, OPENSSL_MALLOC_PREFIX);
@@ -284,6 +290,9 @@ void OPENSSL_free(void *orig_ptr) {
   size_t size = *(size_t *)ptr;
   OPENSSL_cleanse(ptr, size + OPENSSL_MALLOC_PREFIX);
 
+#if defined(OPENSSL_SYS_STARBOARD)
+  free(ptr);
+#else
 // ASan knows to intercept malloc and free, but not sdallocx.
 #if defined(OPENSSL_ASAN)
   (void)sdallocx;
@@ -295,6 +304,7 @@ void OPENSSL_free(void *orig_ptr) {
     free(ptr);
   }
 #endif
+#endif  // defined(OPENSSL_SYS_STARBOARD)
 }
 
 void *OPENSSL_realloc(void *orig_ptr, size_t new_size) {
@@ -303,14 +313,18 @@ void *OPENSSL_realloc(void *orig_ptr, size_t new_size) {
   }
 
   size_t old_size;
+#if !defined(OPENSSL_SYS_STARBOARD)
   if (OPENSSL_memory_get_size != NULL) {
     old_size = OPENSSL_memory_get_size(orig_ptr);
   } else {
+#endif  // !defined(OPENSSL_SYS_STARBOARD)
     void *ptr = ((uint8_t *)orig_ptr) - OPENSSL_MALLOC_PREFIX;
     __asan_unpoison_memory_region(ptr, OPENSSL_MALLOC_PREFIX);
     old_size = *(size_t *)ptr;
     __asan_poison_memory_region(ptr, OPENSSL_MALLOC_PREFIX);
+#if !defined(OPENSSL_SYS_STARBOARD)
   }
+#endif  // !defined(OPENSSL_SYS_STARBOARD)
 
   void *ret = OPENSSL_malloc(new_size);
   if (ret == NULL) {

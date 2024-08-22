@@ -28,6 +28,12 @@
 OPENSSL_MSVC_PRAGMA(warning(push))
 OPENSSL_MSVC_PRAGMA(warning(disable: 4702))
 #include <map>
+
+#if defined(STARBOARD)
+#define printf(fmt, ...) SbLogFormatF(fmt, ##__VA_ARGS__)
+#define fprintf(discard, fmt, ...) printf(fmt, ##__VA_ARGS__)
+#endif
+
 OPENSSL_MSVC_PRAGMA(warning(pop))
 
 struct FileCloser {

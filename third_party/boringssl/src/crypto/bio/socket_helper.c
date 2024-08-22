@@ -27,7 +27,9 @@
 #include <sys/types.h>
 
 #if !defined(OPENSSL_WINDOWS)
+#if !defined(OPENSSL_SYS_STARBOARD)
 #include <netdb.h>
+#endif  // !defined(OPENSSL_SYS_STARBOARD)
 #include <unistd.h>
 #else
 OPENSSL_MSVC_PRAGMA(warning(push, 3))
@@ -40,11 +42,15 @@ OPENSSL_MSVC_PRAGMA(warning(pop))
 #include "../internal.h"
 
 
+// |getaddrinfo| is platform releted, it's not supported on all platforms.
+// This function is used only if we use BIO_new_connect. As we don't use 
+// BIO_new_connect, use empty implemtation to avoid compile errors.
 int bio_ip_and_port_to_socket_and_addr(int *out_sock,
                                        struct sockaddr_storage *out_addr,
                                        socklen_t *out_addr_length,
                                        const char *hostname,
                                        const char *port_str) {
+#if !defined(OPENSSL_SYS_STARBOARD)
   struct addrinfo hint, *result, *cur;
   int ret;
 
@@ -88,6 +94,10 @@ int bio_ip_and_port_to_socket_and_addr(int *out_sock,
 out:
   freeaddrinfo(result);
   return ret;
+#else // !defined(OPENSSL_SYS_STARBOARD)
+  SB_NOTREACHED();
+  return 0;
+#endif  // !defined(OPENSSL_SYS_STARBOARD)
 }
 
 int bio_socket_nbio(int sock, int on) {

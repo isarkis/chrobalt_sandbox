@@ -109,6 +109,21 @@
    */
 
 
+#if defined( STARBOARD )
+#include <fcntl.h>
+#include <unistd.h>
+
+#include "starboard/common/file_wrapper.h"
+#include "starboard/string.h"
+
+#define FT_FILE     FileStruct
+#define ft_fclose   file_close
+#define ft_fopen(p, m)  file_open((p), FileModeStringToFlags(m))
+#define ft_fread(b, s, n, f) read((f->fd), (char *)(b), (s) * (n))
+#define ft_fseek(f, o, w) lseek((f->fd), (o), (w))
+#define ft_ftell(f)    lseek((f->fd), 0, SEEK_CUR)
+#define ft_sprintf  sprintf
+#else
 #include <stdio.h>
 
 #define FT_FILE     FILE
@@ -118,6 +133,7 @@
 #define ft_fseek    fseek
 #define ft_ftell    ftell
 #define ft_sprintf  sprintf
+#endif /* defined( STARBOARD ) */
 
 
   /**************************************************************************
@@ -153,7 +169,16 @@
 
 
 #define ft_strtol  strtol
+
+#if defined( STARBOARD )
+static inline char*
+ft_getenv( const char* name )
+{
+  return NULL;
+}
+#else
 #define ft_getenv  getenv
+#endif /* defined( STARBOARD ) */
 
 
   /**************************************************************************

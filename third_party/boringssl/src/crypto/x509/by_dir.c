@@ -54,8 +54,22 @@
  * copied and put under another distribution licence
  * [including the GNU Public Licence.] */
 
+#include <openssl/opensslconf.h>
 #include <string.h>
+
+#ifndef OPENSSL_NO_POSIX_IO
 #include <sys/stat.h>
+#endif
+
+#ifdef OPENSSL_SYS_STARBOARD
+#include "starboard/configuration_constants.h"
+#define LIST_SEPARATOR_CHAR kSbPathSepChar
+#endif
+
+#ifdef NATIVE_TARGET_BUILD
+#define LIST_SEPARATOR_CHAR ':'
+#endif
+
 #include <sys/types.h>
 
 #include <openssl/buf.h>
@@ -117,7 +131,11 @@ static int dir_ctrl(X509_LOOKUP *ctx, int cmd, const char *argp, long argl,
   switch (cmd) {
     case X509_L_ADD_DIR:
       if (argl == X509_FILETYPE_DEFAULT) {
-        dir = (char *)getenv(X509_get_default_cert_dir_env());
+#if defined(OPENSSL_SYS_STARBOARD)
+            // We don't expect to use the default certs dir.
+            OPENSSL_PUT_ERROR(X509, X509_R_LOADING_CERT_DIR);
+#else
+            dir = (char *)OPENSSL_port_getenv(X509_get_default_cert_dir_env());
         if (dir) {
           ret = add_cert_dir(ld, dir, X509_FILETYPE_PEM);
         } else {
@@ -127,6 +145,7 @@ static int dir_ctrl(X509_LOOKUP *ctx, int cmd, const char *argp, long argl,
         if (!ret) {
           OPENSSL_PUT_ERROR(X509, X509_R_LOADING_CERT_DIR);
         }
+#endif
       } else {
         ret = add_cert_dir(ld, argp, (int)argl);
       }
@@ -192,7 +211,7 @@ static int add_cert_dir(BY_DIR *ctx, const char *dir, int type) {
   s = dir;
   p = s;
   do {
-    if ((*p == ':') || (*p == '\0')) {
+      if ((*p == LIST_SEPARATOR_CHAR) || (*p == '\0')) {
       BY_DIR_ENTRY *ent;
       ss = s;
       s = p + 1;

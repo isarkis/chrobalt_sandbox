@@ -111,7 +111,11 @@
 #include <openssl/err.h>
 
 #include <assert.h>
+#if defined(OPENSSL_SYS_STARBOARD)
+#include "starboard/log.h"
+#else  // !defined(OPENSSL_SYS_STARBOARD)
 #include <errno.h>
+#endif  // defined(OPENSSL_SYS_STARBOARD
 #include <inttypes.h>
 #include <limits.h>
 #include <stdarg.h>
@@ -379,7 +383,11 @@ void ERR_remove_state(unsigned long pid) {
 }
 
 void ERR_clear_system_error(void) {
+#if defined(OPENSSL_SYS_STARBOARD)
+  SbSystemClearLastError();
+#else  // !defined(OPENSSL_SYS_STARBOARD)
   errno = 0;
+#endif  // defined(OPENSSL_SYS_STARBOARD)
 }
 
 // err_string_cmp is a compare function for searching error values with
@@ -490,7 +498,7 @@ static const char *err_reason_error_string(uint32_t packed_error) {
 
   if (lib == ERR_LIB_SYS) {
     if (reason < 127) {
-      return strerror(reason);
+      return OPENSSL_port_strerror(reason);
     }
     return NULL;
   }
@@ -627,10 +635,18 @@ void ERR_print_errors_cb(ERR_print_errors_callback_t callback, void *ctx) {
 }
 
 static int print_errors_to_file(const char* msg, size_t msg_len, void* ctx) {
+#if !defined(OPENSSL_SYS_STARBOARD)
   assert(msg[msg_len] == '\0');
   FILE* fp = ctx;
   int res = fputs(msg, fp);
   return res < 0 ? 0 : 1;
+#else // defined(OPENSSL_SYS_STARBOARD)
+  SB_DCHECK(msg[msg_len] == '\0');
+  // boringssl is fully starboardized and no FILE* should be valid here.
+  SB_DCHECK(!ctx);
+  SbLog(kSbLogPriorityError, msg);
+  return 1;
+#endif  // !defined(OPENSSL_SYS_STARBOARD)
 }
 
 void ERR_print_errors_fp(FILE *file) {
@@ -663,11 +679,15 @@ void ERR_put_error(int library, int unused, int reason, const char *file,
   }
 
   if (library == ERR_LIB_SYS && reason == 0) {
+#if defined(OPENSSL_SYS_STARBOARD)
+    reason = SbSystemGetLastError();
+#else  // !defined(OPENSSL_SYS_STARBOARD)
 #if defined(OPENSSL_WINDOWS)
     reason = GetLastError();
 #else
     reason = errno;
 #endif
+#endif  // defined(OPENSSL_SYS_STARBOARD)
   }
 
   state->top = (state->top + 1) % ERR_NUM_ERRORS;

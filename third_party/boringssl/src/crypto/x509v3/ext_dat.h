@@ -77,8 +77,10 @@ extern const X509V3_EXT_METHOD v3_addr, v3_asid;
 // This table will be searched using OBJ_bsearch so it *must* kept in order
 // of the ext_nid values.
 
+#if !defined(OPENSSL_NO_OCSP)
 // TODO(fork): OCSP support
 #define OPENSSL_NO_OCSP
+#endif
 
 static const X509V3_EXT_METHOD *const standard_exts[] = {
     &v3_nscert,

@@ -40,6 +40,11 @@
 #include "../service_indicator/internal.h"
 #include "../tls/internal.h"
 
+#if defined(STARBOARD)
+#include "starboard/common/log.h"
+#define fprintf(stderr, ...) SbLogFormatF(__VA_ARGS__)
+#endif
+
 
 // MSVC wants to put a NUL byte at the end of non-char arrays and so cannot
 // compile the real logic.
@@ -65,7 +70,9 @@ static int check_test(const void *expected, const void *actual,
     fprintf(stderr, "\nCalculated: ");
     hexdump(actual, expected_len);
     fprintf(stderr, "\n");
+#if !defined(STARBOARD)
     fflush(stderr);
+#endif
     return 0;
   }
   return 1;

@@ -143,8 +143,11 @@ class GTEST_INTERNAL_EMPTY_BASE_CLASS NiceMock
                 "https://google.github.io/googletest/"
                 "gmock_cook_book.html#NiceStrictNaggy");
   NiceMock() : MockClass() {
+#if !defined(_MSC_VER)
+// TODO: b/330265477 - Re-enable this check on MSVC once it complies.
     static_assert(sizeof(*this) == sizeof(MockClass),
                   "The impl subclass shouldn't introduce any padding");
+#endif
   }
 
   // Ideally, we would inherit base class's constructors through a using
@@ -156,16 +159,20 @@ class GTEST_INTERNAL_EMPTY_BASE_CLASS NiceMock
   // made explicit.
   template <typename A>
   explicit NiceMock(A&& arg) : MockClass(std::forward<A>(arg)) {
+#if !defined(_MSC_VER)
     static_assert(sizeof(*this) == sizeof(MockClass),
                   "The impl subclass shouldn't introduce any padding");
+#endif
   }
 
   template <typename TArg1, typename TArg2, typename... An>
   NiceMock(TArg1&& arg1, TArg2&& arg2, An&&... args)
       : MockClass(std::forward<TArg1>(arg1), std::forward<TArg2>(arg2),
                   std::forward<An>(args)...) {
+#if !defined(_MSC_VER)
     static_assert(sizeof(*this) == sizeof(MockClass),
                   "The impl subclass shouldn't introduce any padding");
+#endif
   }
 
  private:
@@ -225,8 +232,11 @@ class GTEST_INTERNAL_EMPTY_BASE_CLASS StrictMock
       "https://google.github.io/googletest/"
       "gmock_cook_book.html#NiceStrictNaggy");
   StrictMock() : MockClass() {
+#if !GTEST_OS_STARBOARD
     static_assert(sizeof(*this) == sizeof(MockClass),
                   "The impl subclass shouldn't introduce any padding");
+#endif // !GTEST_OS_STARBOARD - gives MSVC comp error, i think due to Starboard
+       // padding  b/288166017
   }
 
   // Ideally, we would inherit base class's constructors through a using
@@ -238,16 +248,22 @@ class GTEST_INTERNAL_EMPTY_BASE_CLASS StrictMock
   // made explicit.
   template <typename A>
   explicit StrictMock(A&& arg) : MockClass(std::forward<A>(arg)) {
+#if !GTEST_OS_STARBOARD
     static_assert(sizeof(*this) == sizeof(MockClass),
                   "The impl subclass shouldn't introduce any padding");
+#endif // !GTEST_OS_STARBOARD - gives MSVC comp error, i think due to Starboard
+       // padding
   }
 
   template <typename TArg1, typename TArg2, typename... An>
   StrictMock(TArg1&& arg1, TArg2&& arg2, An&&... args)
       : MockClass(std::forward<TArg1>(arg1), std::forward<TArg2>(arg2),
                   std::forward<An>(args)...) {
+#if !GTEST_OS_STARBOARD
     static_assert(sizeof(*this) == sizeof(MockClass),
                   "The impl subclass shouldn't introduce any padding");
+#endif // !GTEST_OS_STARBOARD - gives MSVC comp error, i think due to Starboard
+       // padding
   }
 
  private:
