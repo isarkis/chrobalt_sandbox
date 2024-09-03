@@ -5,6 +5,7 @@
     ],
     "targets": [
         "base_unittests",
+        "base_unittests_apk",
         "sql_unittests",
         "net_unittests",
         "url_unittests",
